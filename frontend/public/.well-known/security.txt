@@ -1,0 +1,8 @@
+# JBVNL Security Disclosure Policy (RFC 9116)
+Contact: mailto:security@jbvnl.co.in
+Contact: https://jbvnl.co.in/contact-us
+Expires: 2027-12-31T23:59:59.000Z
+Encryption: https://jbvnl.co.in/pgp-key.txt
+Preferred-Languages: en, hi
+Canonical: https://jbvnl.co.in/.well-known/security.txt
+Policy: https://jbvnl.co.in/security-policy

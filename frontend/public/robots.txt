@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /inbox/
+Allow: /
+
+Sitemap: https://jbvnl.co.in/sitemap.xml

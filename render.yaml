@@ -1,11 +1,11 @@
-services:
-  # 1. PostgreSQL Managed Database
-  - type: postgres
-    name: tms-postgres
-    ipAllowList: [] # allow all internal connections
+databases:
+  - name: tms-postgres
+    databaseName: tms_db
+    user: tms_user
     plan: free
 
-  # 2. FastAPI Backend Web Service
+services:
+  # 1. FastAPI Backend Web Service
   - type: web
     name: tms-backend
     env: python
@@ -21,7 +21,7 @@ services:
       - key: NODE_ENV
         value: production
 
-  # 3. React Vite Frontend Static Site
+  # 2. React Vite Frontend Static Site
   - type: web
     name: tms-frontend
     env: static

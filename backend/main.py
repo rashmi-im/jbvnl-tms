@@ -17,8 +17,16 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    start_scheduler()
+    try:
+        init_db()
+    except Exception as e:
+        print(f"⚠️ Database initialization error: {e}")
+        
+    if not os.environ.get("VERCEL"):
+        try:
+            start_scheduler()
+        except Exception as e:
+            print(f"⚠️ Scheduler start error: {e}")
     yield
 
 app = FastAPI(
@@ -34,24 +42,23 @@ from app.security import SecurityHeadersMiddleware, RateLimiterMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimiterMiddleware)
 
-# Configure CORS for React frontend
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-]
-if os.environ.get("FRONTEND_URL"):
-    origins.append(os.environ.get("FRONTEND_URL"))
+# Path normalization middleware for Vercel serverless routing
+@app.middleware("http")
+async def normalize_api_path(request, call_next):
+    path = request.scope.get("path", "")
+    # If Vercel stripped /api, normalize it so FastAPI router matches /api/...
+    if not path.startswith("/api") and not path.startswith("/docs") and not path.startswith("/openapi"):
+        request.scope["path"] = f"/api{path}"
+    return await call_next(request)
 
+# Configure CORS for React frontend (supports Vercel preview & production deployments)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if os.environ.get("NODE_ENV") != "production" else ["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 # Include all modular routers
 app.include_router(auth_router.router)
@@ -69,3 +76,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     print(f"⚡ Starting TMS Backend Server on http://0.0.0.0:{port}")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+

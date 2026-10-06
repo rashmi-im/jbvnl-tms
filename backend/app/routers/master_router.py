@@ -5,7 +5,7 @@ from app.database import get_db, sub_scope, hpw
 from app.auth import get_current_user, need_roles
 from app.audit import audit
 
-router = APIRouter(prefix="/api", tags=["Master"])
+router = APIRouter(tags=["Master"])
 
 ADMIN_ENT = {
     "circles": ["name"],

@@ -15,7 +15,7 @@ from app.auth import get_current_user, need_roles
 from app.audit import audit, notify
 from app.config import UPLOADS_DIR
 
-router = APIRouter(prefix="/api", tags=["Failures"])
+router = APIRouter(tags=["Failures"])
 
 EDIT_FIELDS = ["failed_at", "village", "capacity", "ttype", "failure_type", "consumers", "replacement_required", "lat", "lng", "remarks"]
 REPLACEMENT_FIELDS = ["repl_at", "new_dtr", "new_cap", "old_status", "repl_remarks", "restoration"]

@@ -60,17 +60,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include all modular routers
-app.include_router(auth_router.router)
-app.include_router(failure_router.router)
-app.include_router(dashboard_router.router)
-app.include_router(report_router.router)
-app.include_router(master_router.router)
-app.include_router(notification_router.router)
+# Include all modular routers both with and without /api prefix (handles Vercel root_path stripping)
+all_routers = [
+    auth_router.router,
+    failure_router.router,
+    dashboard_router.router,
+    report_router.router,
+    master_router.router,
+    notification_router.router,
+]
+for r in all_routers:
+    app.include_router(r)
+    app.include_router(r, prefix="/api")
 
+@app.get("/health")
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "version": "2.0.0"}
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))

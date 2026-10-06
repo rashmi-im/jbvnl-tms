@@ -7,7 +7,7 @@ from app.database import get_db, sub_scope
 from app.auth import get_current_user
 from app.scheduler import snapshot_rows
 
-router = APIRouter(prefix="/api", tags=["Reports"])
+router = APIRouter(tags=["Reports"])
 
 @router.get("/report/daily")
 def daily_report(date: Optional[str] = None, format: Optional[str] = None, user: dict = Depends(get_current_user)):

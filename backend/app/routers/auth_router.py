@@ -6,7 +6,7 @@ from app.database import get_db, vpw, now_str
 from app.auth import get_current_user, check_login_rate_limit, record_failed_login
 from app.audit import audit
 
-router = APIRouter(prefix="/api", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
 
 @router.post("/login")
 def login(req_data: LoginRequest, request: Request, response: Response):

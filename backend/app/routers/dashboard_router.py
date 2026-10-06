@@ -6,7 +6,7 @@ from app.database import get_db, sub_scope
 from app.auth import get_current_user
 from app.routers.failure_router import fetch
 
-router = APIRouter(prefix="/api", tags=["Dashboard"])
+router = APIRouter(tags=["Dashboard"])
 
 @router.get("/dashboard")
 def dashboard(date: Optional[str] = None, user: dict = Depends(get_current_user)):

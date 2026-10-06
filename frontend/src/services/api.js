@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_URL || 'https://jbvnl-tms-1.onrender.com';
+
 export async function apiCall(endpoint, method = 'GET', body = null) {
   const options = {
     method,
@@ -9,7 +11,8 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`/api/${endpoint}`, options);
+  const response = await fetch(`${API_BASE}/api/${endpoint}`, options);
+
   const contentType = response.headers.get('content-type') || '';
 
   let data;

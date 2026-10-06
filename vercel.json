@@ -1,35 +1,11 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": "backend/**"
-      }
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "backend/**"
-    }
-  },
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
+      "source": "/api/:path*",
+      "destination": "https://jbvnl-tms-1.onrender.com/api/:path*"
     }
   ]
 }
+
 

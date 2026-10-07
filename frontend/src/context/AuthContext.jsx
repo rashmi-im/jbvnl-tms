@@ -40,6 +40,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       // Ignore
     }
+    localStorage.removeItem('tms_token');
     setUser(null);
     setMasterData(null);
   };

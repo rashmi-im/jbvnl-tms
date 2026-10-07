@@ -4,7 +4,13 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
   const options = {
     method,
     headers: {},
+    credentials: 'include',
   };
+
+  const token = localStorage.getItem('tms_token');
+  if (token) {
+    options.headers['Authorization'] = `Bearer ${token}`;
+  }
 
   if (body) {
     options.headers['Content-Type'] = 'application/json';
@@ -27,6 +33,14 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
   if (!response.ok) {
     const errorMsg = (typeof data === 'object' && data.detail) || (typeof data === 'object' && data.error) || 'API Request failed';
     throw new Error(errorMsg);
+  }
+
+  if (endpoint === 'login' && data.token) {
+    localStorage.setItem('tms_token', data.token);
+  }
+
+  if (endpoint === 'logout') {
+    localStorage.removeItem('tms_token');
   }
 
   return data;

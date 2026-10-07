@@ -24,12 +24,12 @@ def login(req_data: LoginRequest, request: Request, response: Response):
         c.execute("insert into sessions values(?,?,?,?)", (tok, u["id"], now_str(), ip))
         audit(c, dict(u), "LOGIN", None, None, None, ip)
         
-        is_secure = bool(os.environ.get("TMS_HTTPS"))
+        is_secure = os.environ.get("TMS_HTTPS") != "0"
         response.set_cookie(
             key="sid",
             value=tok,
             httponly=True,
-            samesite="strict",
+            samesite="none" if is_secure else "lax",
             path="/",
             max_age=43200,
             secure=is_secure

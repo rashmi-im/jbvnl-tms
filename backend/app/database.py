@@ -42,7 +42,7 @@ def get_pg_pool():
         conn_str = get_pg_connection_string()
         try:
             from psycopg2 import pool
-            _pg_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=10, dsn=conn_str)
+            _pg_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=20, dsn=conn_str)
         except Exception as e:
             print(f"⚠️ Failed to create connection pool: {e}")
             _pg_pool = None

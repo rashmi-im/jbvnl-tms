@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { KeyRound, UserCheck, ShieldCheck, Zap, Lock, Building2 } from 'lucide-react';
+import { Lock, Building2 } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -17,18 +17,6 @@ export function LoginPage() {
       await login(empId, password);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const demoLogin = async (id, pwd = 'ChangeMe@123') => {
-    setError('');
-    setLoading(true);
-    try {
-      await login(id, pwd);
-    } catch (err) {
-      setError(err.message || 'Demo login failed');
     } finally {
       setLoading(false);
     }
@@ -166,7 +154,7 @@ export function LoginPage() {
                 className="form-input"
                 value={empId}
                 onChange={(e) => setEmpId(e.target.value)}
-                placeholder="Enter Employee ID (e.g. je1, ae1, admin)"
+                placeholder="Enter Employee ID"
                 required
                 style={{ paddingLeft: 40 }}
               />
@@ -215,36 +203,6 @@ export function LoginPage() {
           </button>
         </form>
 
-        {/* Quick Demo Sign-in switcher */}
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #e2e8f0' }}>
-          <div
-            style={{
-              fontSize: '0.725rem',
-              fontWeight: 800,
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              marginBottom: 12,
-              textAlign: 'center'
-            }}
-          >
-            Quick Officer Sign-In
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button className="btn btn-sec btn-sm" onClick={() => demoLogin('je1')}>
-              <UserCheck size={14} color="#0052cc" /> JE Sahibganj
-            </button>
-            <button className="btn btn-sec btn-sm" onClick={() => demoLogin('ae1')}>
-              <ShieldCheck size={14} color="#059669" /> AE Sahibganj
-            </button>
-            <button className="btn btn-sec btn-sm" onClick={() => demoLogin('div1')}>
-              Division Officer
-            </button>
-            <button className="btn btn-sec btn-sm" onClick={() => demoLogin('admin')}>
-              System Admin
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Official Footer Banner */}

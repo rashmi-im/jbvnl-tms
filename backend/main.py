@@ -47,7 +47,7 @@ app.add_middleware(RateLimiterMiddleware)
 async def normalize_api_path(request, call_next):
     path = request.scope.get("path", "")
     # If Vercel stripped /api, normalize it so FastAPI router matches /api/...
-    if not path.startswith("/api") and not path.startswith("/docs") and not path.startswith("/openapi"):
+    if path != "/" and not path.startswith("/api") and not path.startswith("/docs") and not path.startswith("/openapi"):
         request.scope["path"] = f"/api{path}"
     return await call_next(request)
 
@@ -72,6 +72,17 @@ all_routers = [
 for r in all_routers:
     app.include_router(r)
     app.include_router(r, prefix="/api")
+
+@app.get("/")
+@app.get("/api/")
+def root():
+    return {
+        "service": "JBVNL Transformer Management System API",
+        "status": "online",
+        "version": "2.0.0",
+        "docs": "/docs",
+        "health": "/api/health"
+    }
 
 @app.get("/health")
 @app.get("/api/health")

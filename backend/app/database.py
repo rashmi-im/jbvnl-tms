@@ -25,14 +25,28 @@ POSTGRES_DB = os.environ.get("POSTGRES_DB", "tms_db")
 USE_POSTGRES = False
 psycopg2 = None
 RealDictCursor = None
+_pg_pool = None
 
 if DATABASE_URL or POSTGRES_USER:
     try:
         import psycopg2
         from psycopg2.extras import RealDictCursor
+        from psycopg2 import pool
         USE_POSTGRES = True
     except ImportError:
         print("⚠️ psycopg2 not installed. Falling back to SQLite.")
+
+def get_pg_pool():
+    global _pg_pool
+    if _pg_pool is None and USE_POSTGRES:
+        conn_str = get_pg_connection_string()
+        try:
+            from psycopg2 import pool
+            _pg_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=10, dsn=conn_str)
+        except Exception as e:
+            print(f"⚠️ Failed to create connection pool: {e}")
+            _pg_pool = None
+    return _pg_pool
 
 def get_pg_connection_string():
     if DATABASE_URL:
@@ -177,6 +191,10 @@ class PostgresConnectionWrapper:
 
 def get_db_conn():
     if USE_POSTGRES:
+        p = get_pg_pool()
+        if p:
+            raw_conn = p.getconn()
+            return PostgresConnectionWrapper(raw_conn)
         conn_str = get_pg_connection_string()
         raw_conn = psycopg2.connect(conn_str)
         return PostgresConnectionWrapper(raw_conn)
@@ -188,15 +206,51 @@ def get_db_conn():
 
 @contextmanager
 def get_db():
-    conn = get_db_conn()
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    p = get_pg_pool()
+    if p:
+        raw_conn = p.getconn()
+        try:
+            if getattr(raw_conn, "closed", 0) != 0:
+                p.putconn(raw_conn, close=True)
+                raw_conn = p.getconn()
+            conn = PostgresConnectionWrapper(raw_conn)
+            yield conn
+            conn.commit()
+        except Exception:
+            try:
+                raw_conn.rollback()
+            except Exception:
+                pass
+            raise
+        finally:
+            try:
+                p.putconn(raw_conn)
+            except Exception:
+                pass
+    elif USE_POSTGRES:
+        conn_str = get_pg_connection_string()
+        raw_conn = psycopg2.connect(conn_str)
+        conn = PostgresConnectionWrapper(raw_conn)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    else:
+        conn = sqlite3.connect(DB_PATH, timeout=15)
+        conn.row_factory = sqlite3.Row
+        conn.execute("pragma foreign_keys=on")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 def hpw(p: str, salt: str = None) -> str:
     salt = salt or secrets.token_hex(16)

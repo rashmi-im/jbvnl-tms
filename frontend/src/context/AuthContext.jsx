@@ -10,14 +10,25 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async () => {
+    const token = localStorage.getItem('tms_token');
+    if (!token) {
+      setUser(null);
+      setMasterData(null);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const u = await apiCall('me');
+      const [u, m, n] = await Promise.all([
+        apiCall('me'),
+        apiCall('master'),
+        apiCall('notifications').catch(() => [])
+      ]);
       setUser(u);
-      const m = await apiCall('master');
       setMasterData(m);
-      const n = await apiCall('notifications');
-      setNotifications(n);
+      setNotifications(n || []);
     } catch (err) {
+      localStorage.removeItem('tms_token');
       setUser(null);
       setMasterData(null);
     } finally {
@@ -30,8 +41,21 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (emp_id, password) => {
-    await apiCall('login', 'POST', { emp_id, password });
-    await fetchUser();
+    const data = await apiCall('login', 'POST', { emp_id, password });
+    if (data && data.user) {
+      setUser(data.user);
+    }
+    // Fetch master and notifications concurrently in parallel
+    try {
+      const [m, n] = await Promise.all([
+        apiCall('master'),
+        apiCall('notifications').catch(() => [])
+      ]);
+      setMasterData(m);
+      setNotifications(n || []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const logout = async () => {

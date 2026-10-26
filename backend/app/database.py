@@ -37,15 +37,16 @@ if DATABASE_URL or POSTGRES_USER:
         print("⚠️ psycopg2 not installed. Falling back to SQLite.")
 
 def get_pg_pool():
-    global _pg_pool
+    global _pg_pool, USE_POSTGRES
     if _pg_pool is None and USE_POSTGRES:
         conn_str = get_pg_connection_string()
         try:
             from psycopg2 import pool
             _pg_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=20, dsn=conn_str)
         except Exception as e:
-            print(f"⚠️ Failed to create connection pool: {e}")
+            print(f"⚠️ Failed to connect to PostgreSQL ({e}). Falling back to local SQLite.")
             _pg_pool = None
+            USE_POSTGRES = False
     return _pg_pool
 
 def get_pg_connection_string():
@@ -190,67 +191,83 @@ class PostgresConnectionWrapper:
 
 
 def get_db_conn():
+    global USE_POSTGRES
     if USE_POSTGRES:
-        p = get_pg_pool()
-        if p:
-            raw_conn = p.getconn()
+        try:
+            p = get_pg_pool()
+            if p:
+                raw_conn = p.getconn()
+                return PostgresConnectionWrapper(raw_conn)
+            conn_str = get_pg_connection_string()
+            raw_conn = psycopg2.connect(conn_str)
             return PostgresConnectionWrapper(raw_conn)
-        conn_str = get_pg_connection_string()
-        raw_conn = psycopg2.connect(conn_str)
-        return PostgresConnectionWrapper(raw_conn)
-    else:
-        c = sqlite3.connect(DB_PATH, timeout=15)
-        c.row_factory = sqlite3.Row
-        c.execute("pragma foreign_keys=on")
-        return c
+        except Exception as e:
+            print(f"⚠️ PostgreSQL connection failed ({e}). Falling back to SQLite.")
+            USE_POSTGRES = False
+    c = sqlite3.connect(DB_PATH, timeout=15)
+    c.row_factory = sqlite3.Row
+    c.execute("pragma foreign_keys=on")
+    return c
 
 @contextmanager
 def get_db():
-    p = get_pg_pool()
-    if p:
-        raw_conn = p.getconn()
+    global USE_POSTGRES
+    if USE_POSTGRES:
         try:
-            if getattr(raw_conn, "closed", 0) != 0:
-                p.putconn(raw_conn, close=True)
+            p = get_pg_pool()
+            if p:
                 raw_conn = p.getconn()
-            conn = PostgresConnectionWrapper(raw_conn)
-            yield conn
-            conn.commit()
-        except Exception:
-            try:
-                raw_conn.rollback()
-            except Exception:
-                pass
-            raise
-        finally:
-            try:
-                p.putconn(raw_conn)
-            except Exception:
-                pass
-    elif USE_POSTGRES:
-        conn_str = get_pg_connection_string()
-        raw_conn = psycopg2.connect(conn_str)
-        conn = PostgresConnectionWrapper(raw_conn)
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-    else:
-        conn = sqlite3.connect(DB_PATH, timeout=15)
-        conn.row_factory = sqlite3.Row
-        conn.execute("pragma foreign_keys=on")
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+                try:
+                    if getattr(raw_conn, "closed", 0) != 0:
+                        p.putconn(raw_conn, close=True)
+                        raw_conn = p.getconn()
+                    conn = PostgresConnectionWrapper(raw_conn)
+                    yield conn
+                    conn.commit()
+                except Exception:
+                    try:
+                        raw_conn.rollback()
+                    except Exception:
+                        pass
+                    raise
+                finally:
+                    try:
+                        p.putconn(raw_conn)
+                    except Exception:
+                        pass
+                return
+            elif USE_POSTGRES:
+                conn_str = get_pg_connection_string()
+                raw_conn = psycopg2.connect(conn_str)
+                conn = PostgresConnectionWrapper(raw_conn)
+                try:
+                    yield conn
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+                return
+        except Exception as e:
+            if _pg_pool is None:
+                print(f"⚠️ PostgreSQL connection failed ({e}). Falling back to SQLite.")
+                USE_POSTGRES = False
+            else:
+                raise
+
+    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn.row_factory = sqlite3.Row
+    conn.execute("pragma foreign_keys=on")
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
 
 def hpw(p: str, salt: str = None) -> str:
     salt = salt or secrets.token_hex(16)
@@ -348,12 +365,23 @@ CREATE TABLE IF NOT EXISTS daily_reports(report_date VARCHAR(255), subdivision_i
 """
 
 def init_db():
-    with get_db() as c:
+    global USE_POSTGRES
+    try:
+        with get_db() as c:
+            if USE_POSTGRES:
+                c.executescript(POSTGRES_SCHEMA)
+            else:
+                c.executescript(SQLITE_SCHEMA)
+            seed_db(c)
+    except Exception as e:
         if USE_POSTGRES:
-            c.executescript(POSTGRES_SCHEMA)
+            print(f"⚠️ PostgreSQL initialization error ({e}). Falling back to SQLite.")
+            USE_POSTGRES = False
+            with get_db() as c:
+                c.executescript(SQLITE_SCHEMA)
+                seed_db(c)
         else:
-            c.executescript(SQLITE_SCHEMA)
-        seed_db(c)
+            raise
 
 def seed_db(c):
     res = c.execute("select count(*) as cnt from users").fetchone()

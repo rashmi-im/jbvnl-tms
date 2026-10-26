@@ -18,5 +18,4 @@ for p in candidates:
     if abs_p not in sys.path:
         sys.path.insert(0, abs_p)
 
-from main import app
 

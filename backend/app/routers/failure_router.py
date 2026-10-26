@@ -143,8 +143,10 @@ def create_failure(b: FailureCreateRequest, request: Request, user: dict = Depen
                 (secrets.token_hex(6), t["id"], now_str(), failed_at, sec["subdivision_id"], sec["id"], t["feeder_id"], t["pss_id"], village, capacity,
                  ttype, b.failure_type, b.consumers, user["id"], ae_id, repl_req, bp, b.lat, b.lng, b.remarks)
             )
-        except sqlite3.IntegrityError:
-            raise HTTPException(status_code=409, detail="ACTIVE FAILURE ALREADY EXISTS for this transformer")
+        except Exception as e:
+            if "integrity" in type(e).__name__.lower() or "unique" in str(e).lower() or "conflict" in str(e).lower():
+                raise HTTPException(status_code=409, detail="ACTIVE FAILURE ALREADY EXISTS for this transformer")
+            raise
             
         rid = f"TRF-{datetime.now().year}-{cur.lastrowid:06d}"
         c.execute("update failures set rec_id=? where id=?", (rid, cur.lastrowid))

@@ -28,6 +28,10 @@ def get_current_user(request: Request):
             sid = auth_hdr.split(" ", 1)[1]
             
     if not sid:
+        # Check query params for token (e.g. image requests)
+        sid = request.query_params.get("token") or request.query_params.get("sid")
+            
+    if not sid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login required")
         
     with get_db() as c:

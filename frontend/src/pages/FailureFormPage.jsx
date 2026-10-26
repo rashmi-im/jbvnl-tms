@@ -35,13 +35,13 @@ export function FailureFormPage({ failureId = null, onCancel, onSuccess }) {
         if (f.lat) setGps({ lat: f.lat, lng: f.lng, status: `Captured ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}` });
         if (f.before_photo) setBeforePhotoPreview(`/api/photo/${f.before_photo}`);
       }).catch((err) => setError(err.message));
-    } else if (masterData && masterData.transformers && masterData.transformers.length > 0) {
+    } else if (!transformerId && masterData && masterData.transformers && masterData.transformers.length > 0) {
       const first = masterData.transformers[0];
       setTransformerId(first.id);
       setVillage(first.village || '');
       setCapacity(first.capacity || '');
     }
-  }, [failureId, masterData]);
+  }, [failureId, masterData, transformerId]);
 
   const handleTransformerChange = (id) => {
     setTransformerId(id);
